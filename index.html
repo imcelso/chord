@@ -1,0 +1,735 @@
+<!doctype html>
+<!--
+  Dataset: Long-term care (LTC) spending by provider, 2023.
+  Source: OECD Health Statistics 2025 / Health at a Glance 2025.
+  Figure reference: Figure 10.24 - Total long-term care spending by provider (or nearest year).
+  Permanent link (StatLink): https://stat.link/arfh8s
+  License: © OECD 2025. Used under CC BY 4.0 (as per the publication's front matter).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Where Long-Term Care Flows — A Chord of 30 Nations</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* ---------- 基础排版 ---------- */
+  :root{
+    --bg:        #0e1014;
+    --bg-soft:   #15181f;
+    --ink:       #e8e3d8;
+    --ink-dim:   #8b8578;
+    --ink-faint: #4a4640;
+    --rule:      #2a2823;
+
+    /* Morandi 低饱和调色板 —— 6 类照护提供者 */
+    --c-nursing:   #c98a7d;  /* 干玫瑰 — Nursing homes */
+    --c-hospital:  #7d8ca0;  /* 雾蓝 — Hospitals */
+    --c-home:      #a8a06a;  /* 苔黄 — Home care */
+    --c-house:     #b07d56;  /* 赭石 — Households */
+    --c-social:    #8a9d8a;  /* 鼠尾草 — Social providers */
+    --c-other:     #6e6a63;  /* 烟灰 — Other */
+  }
+
+  html, body {
+    margin:0; padding:0; height:100%;
+    background: radial-gradient(ellipse at center, #15181f 0%, #0a0b0e 90%);
+    color: var(--ink);
+    font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .stage{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 48px 56px;  /* 缩小整体上下间距，配合图表 1/5 缩小 */
+    position: relative;
+  }
+
+  /* ---------- 顶部标题区 ---------- */
+  .eyebrow{
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 24px;
+  }
+  h1{
+    font-family: "Fraunces", "Times New Roman", Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(34px, 4.2vw, 56px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    margin: 0 0 18px;
+    color: var(--ink);
+    max-width: 880px;
+  }
+  h1 em{
+    font-style: normal;
+    color: var(--c-house);
+  }
+  .sub{
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-dim);
+    max-width: 620px;
+    margin: 0 0 8px;
+  }
+
+  /* ---------- 术语小注 / 阅读说明 ---------- */
+  .glossary{
+    list-style: none;
+    padding: 0;
+    margin: 36px 0 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);  /* 下方分割线 */
+    padding-top: 20px;
+    padding-bottom: 22px;
+    max-width: 920px;
+  }
+  .glossary li{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .g-term{
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .g-def{
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--ink-dim);
+  }
+
+  /* ---------- 图形容器 ---------- */
+  .canvas-wrap{
+    position: relative;
+    margin-top: 56px;  /* 术语区到图表的间距 */
+    display: flex;
+    justify-content: center;
+  }
+  svg.chord{
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 784px;  /* 整体缩小 1/5：980 → 784 */
+    overflow: visible;
+  }
+
+  /* ---------- SVG 文本样式 ---------- */
+  .country-label{
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+    fill: var(--ink);
+    font-weight: 300;
+    text-transform: uppercase;
+  }
+  .provider-label{
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    fill: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  /* 第二行：百分比 caption */
+  .provider-count-line{
+    font-family: "Inter", system-ui, sans-serif;
+    font-style: normal;
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    fill: var(--ink-dim);
+    text-transform: uppercase;
+  }
+  .tick-line{
+    stroke: var(--ink-faint);
+    stroke-width: 0.5;
+  }
+
+  /* ---------- 触控热区 ---------- */
+  /* 每个国家/提供者方向上覆盖一个透明的扇形带，鼠标在该方向的整个扇形里都能触发 */
+  .hit-area{
+    fill: transparent;
+    cursor: pointer;
+    pointer-events: all;
+  }
+  /* 让装饰元素不抢命中：避免文字/弧自身造成 hover 抖动 */
+  .arc-country, .arc-provider, .country-label, .provider-label{
+    pointer-events: none;
+  }
+  /* 保留透明度做"丝感"，但去掉 screen 混合 —— 避免中心因多弦叠加变成白光团 */
+  .ribbon{
+    opacity: var(--op, 0.42);
+    transition: opacity 240ms ease;
+  }
+  .arc-country, .arc-provider{
+    transition: opacity 200ms ease, filter 200ms ease;
+  }
+
+  /* hover 状态：非高亮弦降到接近隐形，高亮弦拉到全亮 */
+  svg.is-hovering .ribbon{ opacity: 0.015 !important; }
+  svg.is-hovering .ribbon.is-active{ opacity: 1 !important; }
+  svg.is-hovering .arc-country{ opacity: 0.12; }
+  svg.is-hovering .arc-country.is-active{ opacity: 1; }
+  svg.is-hovering .arc-provider{ opacity: 0.18; }
+  svg.is-hovering .arc-provider.is-active{ opacity: 1; }
+  svg.is-hovering .country-label{ opacity: 0.12; }
+  svg.is-hovering .country-label.is-active{ opacity: 1; fill: #fff; font-weight: 400; }
+  svg.is-hovering .provider-label{ opacity: 0.35; }
+  svg.is-hovering .provider-label.is-active{ opacity: 1; fill: #fff; }
+
+  /* ---------- 注释（占位，下一轮再细化） ---------- */
+  .annotations{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .anno{
+    position: absolute;
+    max-width: 200px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .anno .who{
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .anno .what{
+    color: var(--ink-dim);
+  }
+  .anno-bg::before{
+    content:"";
+    position:absolute;
+    inset: -10px -14px;
+    background: rgba(14,16,20,0.55);
+    backdrop-filter: blur(4px);
+    border-radius: 2px;
+    z-index: -1;
+  }
+
+  /* ---------- 底部脚注 ---------- */
+  .footer{
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 32px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+
+  /* ---------- 入场动画 ---------- */
+  /* 只用 opacity，不用 scale —— 避免抖动 */
+  /* 单根弦慢慢淡入，整体按国家顺时针扫一圈，画面像水墨一样徐徐展开 */
+  @keyframes ribbon-in {
+    from { opacity: 0; }
+    to   { opacity: var(--op, 0.42); }
+  }
+  .ribbon{
+    opacity: 0;
+    animation: ribbon-in 1400ms cubic-bezier(.22,.61,.36,1) both;
+  }
+
+  /* 弧 + 文字：在弦扫描完之前先静静淡入 */
+  @keyframes arc-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .arc-country, .arc-provider, .country-label, .provider-label{
+    animation: arc-in 1600ms ease-out both;
+    animation-delay: 200ms;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="eyebrow">OECD · Chapter 10 · Ageing &amp; Long-Term Care</div>
+  <h1>Where each nation's care budget <em>flows</em>.</h1>
+  <p class="sub">Each thread traces one country's share of long-term care expenditure flowing to one type of provider — from nursing homes and hospitals to home care and households. 29 countries, six destinations, percentage shares of national LTC spending for 2023 (or nearest year).</p>
+
+  <ul class="glossary" aria-label="Term definitions">
+    <li><span class="g-term">Households</span><span class="g-def">Cash benefits or allowances paid directly to recipients or to informal carers.</span></li>
+    <li><span class="g-term">Social providers</span><span class="g-def">Services focused primarily on Instrumental Activities of Daily Living (IADL) or other social care.</span></li>
+    <li><span class="g-term">Reading the diagram</span><span class="g-def">Outer ring shows countries; inner ring shows the six provider types. Hover any country or provider to isolate its flows.</span></li>
+  </ul>
+
+  <div class="canvas-wrap">
+    <svg class="chord" viewBox="-500 -500 1000 1000" preserveAspectRatio="xMidYMid meet" aria-label="Chord diagram of long-term care spending"></svg>
+    <div class="annotations" id="annotations"></div>
+  </div>
+
+  <div class="footer">
+    <span>Source — OECD Health Statistics 2025 · Health at a Glance 2025 · Figure 10.24</span>
+    <span>stat.link/arfh8s · Retrieved Jun 2026 · CC BY 4.0</span>
+  </div>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+/* =====================================================================
+   数据 —— 30 国 × 6 类提供者（%）
+   ===================================================================== */
+const RAW = [
+  ["Switzerland",     78.08, 1.50, 16.22,  4.20,  0.00,  0.00],
+  ["Netherlands",     77.45, 7.53,  2.89,  4.32,  3.06,  4.75],
+  ["Slovak Republic", 77.04,17.82,  4.85,  0.28,  0.00,  0.00],
+  ["Finland",         74.97, 1.38, 10.68,  9.55,  0.00,  3.42],
+  ["Estonia",         66.92,14.02,  2.60,  4.10, 10.29,  2.08],
+  ["Canada",          64.95,12.21, 20.42,  0.03,  0.00,  2.39],
+  ["Belgium",         64.62, 3.62, 29.33,  0.89,  1.16,  0.39],
+  ["Ireland",         63.61, 2.40,  8.24, 18.82,  0.00,  6.93],
+  ["France",          60.94, 6.72, 24.84,  0.30,  0.00,  7.21],
+  ["Denmark",         60.87, 0.00, 34.90,  0.25,  3.97,  0.00],
+  ["United States",   58.83, 0.00, 41.17,  0.00,  0.00,  0.00],
+  ["Slovenia",        58.82, 2.60,  4.91, 30.48,  0.48,  2.72],
+  ["Sweden",          58.02, 0.00, 25.59,  0.11, 15.63,  0.64],
+  ["Austria",         55.21, 0.32, 11.90, 32.58,  0.00,  0.00],
+  ["Australia",       52.95,18.61,  0.02,  0.00, 28.30,  0.11],
+  ["Japan",           48.88,17.15, 20.12,  0.00,  0.00, 13.85],
+  ["Germany",         45.79, 0.00, 32.21, 20.68,  0.00,  1.32],
+  ["Spain",           45.67,26.26, 19.51,  7.52,  0.00,  1.05],
+  ["Norway",          45.20, 0.00, 54.80,  0.00,  0.00,  0.00],
+  ["Luxembourg",      36.84, 0.81, 24.46,  5.85, 27.49,  4.54],
+  ["Lithuania",       35.61, 7.54,  4.98, 21.85, 22.40,  7.61],
+  ["Czechia",         35.57,12.76,  2.73, 16.96, 27.69,  4.29],
+  ["Latvia",          28.67, 9.85, 12.68,  0.00, 48.78,  0.02],
+  ["Korea",           22.84,42.67, 34.47,  0.01,  0.00,  0.00],
+  ["Romania",         22.72,46.59,  2.30, 14.42,  0.00, 13.96],
+  ["Croatia",         21.01,42.44, 18.91, 11.55,  0.00,  6.09],
+  ["Poland",          13.14, 9.29,  5.58, 66.59,  1.12,  4.29],
+  ["Portugal",        11.84, 1.21,  0.00,  5.10, 81.31,  0.55],
+  ["Bulgaria",         5.19, 0.39,  0.00, 94.42,  0.00,  0.00],
+];
+
+const PROVIDERS = [
+  { key:"nursing",  label:"Nursing homes",     color:"var(--c-nursing)",  hex:"#c98a7d" },
+  { key:"hospital", label:"Hospitals",         color:"var(--c-hospital)", hex:"#7d8ca0" },
+  { key:"home",     label:"Home care",         color:"var(--c-home)",     hex:"#a8a06a" },
+  { key:"house",    label:"Households",        color:"var(--c-house)",    hex:"#b07d56" },
+  { key:"social",   label:"Social providers", color:"var(--c-social)",   hex:"#8a9d8a" },
+  { key:"other",    label:"Other",             color:"var(--c-other)",    hex:"#6e6a63" },
+];
+
+/* =====================================================================
+   排序策略：按"最大份额所属提供者"分组，再按该份额排序
+   —— 让画面色彩在圆环上自然聚成色块
+   ===================================================================== */
+const COUNTRIES = RAW.map(r => {
+  const shares = r.slice(1);
+  const dominantIdx = shares.indexOf(Math.max(...shares));
+  return { name: r[0], shares, dominantIdx, dominantVal: shares[dominantIdx] };
+}).sort((a,b) => {
+  if (a.dominantIdx !== b.dominantIdx) return a.dominantIdx - b.dominantIdx;
+  return b.dominantVal - a.dominantVal;
+});
+
+/* =====================================================================
+   布局
+   ===================================================================== */
+const svg = d3.select("svg.chord");
+const W = 1000, H = 1000;
+const outerR = 410;
+const arcCountryR0 = outerR - 10;
+const arcCountryR1 = outerR;
+const arcProviderR0 = outerR + 16;
+const arcProviderR1 = outerR + 24;
+const ribbonR = outerR - 14;
+
+// 上半圆给国家 (180° → 360°，即 π → 2π；用 d3 角度 0 在 12 点)
+// 这里我们直接用极坐标，0 在 12 点，顺时针为正
+// 上半圆：从 -π/2 + padding 到 π/2 - padding 走过 30 个国家会变成下半圆
+// 为了"国家在上、提供者在下"，国家弧用 angle ∈ [π, 2π]（左半 + 上），提供者用 [0, π]（右半 + 下）—— 等下用另一种方式
+// 简化：用 0 为 12 点，国家占 12点→6点（顺时针半圈 270° 的区间），提供者占 6点→12点（另半圈 90° 区间）
+// 视觉上更稳的是：国家弧 240°、提供者弧 120°
+const TAU = Math.PI * 2;
+
+const COUNTRY_ARC_SPAN = TAU * (250/360);   // 国家占 250°
+const PROVIDER_ARC_SPAN = TAU * (95/360);   // 提供者占 95°
+const GAP_BIG = TAU * (7.5/360);            // 两组之间各留 7.5° 空白
+
+// 国家弧从 12 点开始顺时针，经过右侧，到接近 6 点
+const countryStart = GAP_BIG;
+const countryEnd = countryStart + COUNTRY_ARC_SPAN;
+const providerStart = countryEnd + GAP_BIG;
+const providerEnd = providerStart + PROVIDER_ARC_SPAN;
+
+// 每国分配等宽弧 → 弦总粗度由国家"输出端"决定
+const countryPad = TAU * (0.25/360);  // 国家间小间隔
+const countryWidth = (COUNTRY_ARC_SPAN - countryPad * COUNTRIES.length) / COUNTRIES.length;
+
+COUNTRIES.forEach((c, i) => {
+  c.a0 = countryStart + i * (countryWidth + countryPad);
+  c.a1 = c.a0 + countryWidth;
+  // 每国的 100 个百分点 → 对应弧的角度切片
+  c.slices = [];
+  let cursor = c.a0;
+  c.shares.forEach((v, j) => {
+    const w = countryWidth * (v / 100);
+    c.slices.push({ providerIdx: j, value: v, a0: cursor, a1: cursor + w });
+    cursor += w;
+  });
+});
+
+// 提供者弧按收到的总量分配
+const providerTotals = PROVIDERS.map((_, j) =>
+  d3.sum(COUNTRIES, c => c.shares[j])
+);
+const providerSum = d3.sum(providerTotals);
+const providerPad = TAU * (1.5/360);
+const providerInnerSpan = PROVIDER_ARC_SPAN - providerPad * (PROVIDERS.length - 1);
+
+let pCursor = providerStart;
+PROVIDERS.forEach((p, j) => {
+  const w = providerInnerSpan * (providerTotals[j] / providerSum);
+  p.a0 = pCursor;
+  p.a1 = pCursor + w;
+  // 提供者内部再切成"从各国收到的份额"
+  p.incoming = [];
+  let inner = pCursor;
+  COUNTRIES.forEach((c, i) => {
+    const v = c.shares[j];
+    const ww = w * (v / providerTotals[j]);
+    p.incoming.push({ countryIdx: i, value: v, a0: inner, a1: inner + ww });
+    inner += ww;
+  });
+  pCursor += w + providerPad;
+});
+
+/* =====================================================================
+   极坐标 → 笛卡尔；arc 与 ribbon 生成器
+   注：我们的"角度"以 12 点为 0，顺时针为正
+   ===================================================================== */
+function polar(r, a){
+  // 转成数学坐标：a=0 在 12 点，顺时针
+  return [ r * Math.sin(a), -r * Math.cos(a) ];
+}
+
+const arc = d3.arc()
+  .startAngle(d => d.a0)
+  .endAngle(d => d.a1);
+
+// 自定义 ribbon：从国家切片 → 提供者切片
+// 关键：把我们自定义的角度（12 点 = 0，顺时针 +）转换成 canvas/path 的标准角度（3 点 = 0），
+// 而不是用 atan2 反推 —— 反推时会因为坐标系不一致导致弧画反、绕大圈、视觉上"断裂"
+//
+// 视觉最小宽度：极细弦在转弯处贝塞尔近似会因 sub-pixel 误差出现"断裂"。
+// 在端点处把宽度强制扩展到 MIN_ENDPOINT_ANGLE，几何上更稳，视觉上弦不再断。
+// 数据上：弧本身的份额切片不变，只有"弦端点"被略微加粗。
+const MIN_ENDPOINT_ANGLE = TAU * (0.45 / 360); // 约 0.45°，等价于 ~3-4 px 厚度
+
+function expandEndpoint(a0, a1){
+  const w = a1 - a0;
+  if (w >= MIN_ENDPOINT_ANGLE) return [a0, a1];
+  const mid = (a0 + a1) / 2;
+  return [mid - MIN_ENDPOINT_ANGLE / 2, mid + MIN_ENDPOINT_ANGLE / 2];
+}
+
+function ribbonPath(srcA0, srcA1, dstA0, dstA1){
+  const r = ribbonR;
+  // 端点扩展到视觉最小宽度
+  [srcA0, srcA1] = expandEndpoint(srcA0, srcA1);
+  [dstA0, dstA1] = expandEndpoint(dstA0, dstA1);
+  // 坐标系换算：canvas角度 = 自定义角度 - π/2
+  const cs0 = srcA0 - Math.PI / 2;
+  const cs1 = srcA1 - Math.PI / 2;
+  const cd0 = dstA0 - Math.PI / 2;
+  const cd1 = dstA1 - Math.PI / 2;
+  const [sx0, sy0] = polar(r, srcA0);
+  const [dx1, dy1] = polar(r, dstA1);
+  const p = d3.path();
+  p.moveTo(sx0, sy0);
+  // 沿源端弧：cs0 → cs1（screen 顺时针，即 anticlockwise=false）
+  p.arc(0, 0, r, cs0, cs1, false);
+  // 贝塞尔曲线穿过圆心附近，抵达目标弧的另一端
+  p.quadraticCurveTo(0, 0, dx1, dy1);
+  // 沿目标端弧回程：cd1 → cd0（逆向，anticlockwise=true）
+  p.arc(0, 0, r, cd1, cd0, true);
+  // 贝塞尔回到起点，闭合
+  p.quadraticCurveTo(0, 0, sx0, sy0);
+  p.closePath();
+  return p.toString();
+}
+
+/* =====================================================================
+   渐变定义：每根弦的颜色 = 国家"主导提供者色" → 实际目标提供者色
+   ===================================================================== */
+const defs = svg.append("defs");
+
+// 把 hex 转 rgb，方便做"同色系浅→深"的渐变
+function hexToRgb(hex){
+  const h = hex.replace("#","");
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function mixToward(hex, target, t){
+  // t=0 返回原色，t=1 返回 target
+  const a = hexToRgb(hex);
+  const b = hexToRgb(target);
+  const m = a.map((v,i) => Math.round(v + (b[i]-v)*t));
+  return `rgb(${m[0]}, ${m[1]}, ${m[2]})`;
+}
+
+// 弦颜色按"目标提供者"着色：从国家端的浅版本 → 提供者端的饱和版本
+// 浅版本通过向深背景色混合得到
+COUNTRIES.forEach((c, i) => {
+  PROVIDERS.forEach((p, j) => {
+    const id = `grad-${i}-${j}`;
+    const [sx, sy] = polar(ribbonR, (c.slices[j].a0 + c.slices[j].a1)/2);
+    const [dx, dy] = polar(ribbonR, (p.incoming[i].a0 + p.incoming[i].a1)/2);
+    const g = defs.append("linearGradient")
+      .attr("id", id)
+      .attr("gradientUnits", "userSpaceOnUse")
+      .attr("x1", sx).attr("y1", sy)
+      .attr("x2", dx).attr("y2", dy);
+    // 国家端：提供者色向背景色靠拢一点，弱化
+    g.append("stop").attr("offset","0%").attr("stop-color", mixToward(p.hex, "#1a1d24", 0.55));
+    // 提供者端：饱和原色
+    g.append("stop").attr("offset","100%").attr("stop-color", p.hex);
+  });
+});
+
+// 中心暗光晕，让丝感更明显
+const halo = defs.append("radialGradient").attr("id","halo");
+halo.append("stop").attr("offset","0%").attr("stop-color","#1a1d24").attr("stop-opacity","0.85");
+halo.append("stop").attr("offset","70%").attr("stop-color","#0e1014").attr("stop-opacity","0");
+
+svg.append("circle")
+  .attr("r", outerR - 30)
+  .attr("fill", "url(#halo)");
+
+/* =====================================================================
+   绘制弦（先画，让它在最底层）
+   ===================================================================== */
+const ribbonsLayer = svg.append("g").attr("class","ribbons");
+const ribbonData = [];
+COUNTRIES.forEach((c, i) => {
+  PROVIDERS.forEach((p, j) => {
+    const v = c.shares[j];
+    if (v < 0.05) return; // 极小值不画，避免噪点
+    const src = c.slices[j];
+    const dst = p.incoming[i];
+    ribbonData.push({ ci:i, pi:j, value:v, src, dst });
+  });
+});
+
+// 沿圆环顺时针扫描：按国家索引排序，同一国家内部按 provider 顺序
+// —— 入场观感像"光从 12 点开始顺时针逐个国家点亮"
+ribbonData.sort((a,b) => {
+  if (a.ci !== b.ci) return a.ci - b.ci;
+  return a.pi - b.pi;
+});
+
+// 弦的最终透明度做非线性映射
+const opScale = d3.scaleSqrt().domain([0.05, 100]).range([0.18, 0.55]);
+const strokeScale = d3.scaleSqrt().domain([0.05, 100]).range([0.3, 0]);
+
+const ribbons = ribbonsLayer.selectAll("path.ribbon")
+  .data(ribbonData)
+  .join("path")
+  .attr("class", d => `ribbon r-c${d.ci} r-p${d.pi}`)
+  .attr("d", d => ribbonPath(d.src.a0, d.src.a1, d.dst.a0, d.dst.a1))
+  .attr("fill", d => `url(#grad-${d.ci}-${d.pi})`)
+  .style("--op", d => opScale(d.value))  // 用 CSS 变量驱动透明度，避免压过 hover 状态
+  // 按国家索引推进，同国家内的弦同步淡入；国家之间 80ms 错峰
+  .style("animation-delay", d => `${d.ci * 80}ms`);
+
+/* =====================================================================
+   绘制国家弧 + 文字
+   ===================================================================== */
+const countryLayer = svg.append("g").attr("class","countries");
+
+const countryArcs = countryLayer.selectAll("g.country")
+  .data(COUNTRIES)
+  .join("g")
+  .attr("class", (d,i) => `country country-${i}`);
+
+countryArcs.append("path")
+  .attr("class", "arc-country")
+  .attr("d", d => {
+    const a = d3.arc()
+      .innerRadius(arcCountryR0)
+      .outerRadius(arcCountryR1)
+      .startAngle(d.a0)
+      .endAngle(d.a1);
+    return a(d);
+  })
+  .attr("fill", d => PROVIDERS[d.dominantIdx].hex)
+  .attr("opacity", 0.85);
+
+// 国家热区：覆盖弧内外、含文字与一点 padding 的整个扇形条
+countryArcs.append("path")
+  .attr("class", "hit-area")
+  .attr("d", d => {
+    // 把国家相邻的间隙也分一半给当前国家，让横向覆盖更宽
+    const halfPad = countryPad / 2;
+    const a = d3.arc()
+      .innerRadius(arcCountryR0 - 18)        // 向内扩 18px
+      .outerRadius(arcCountryR1 + 80)        // 向外扩 80px，覆盖文字
+      .startAngle(d.a0 - halfPad)
+      .endAngle(d.a1 + halfPad);
+    return a(d);
+  });
+
+// 文字沿圆弧 ——— 计算中点角度，决定旋转 + 翻转
+countryArcs.append("text")
+  .attr("class","country-label")
+  .attr("transform", d => {
+    const mid = (d.a0 + d.a1) / 2;
+    const r = arcCountryR1 + 8;
+    const [x, y] = polar(r, mid);
+    // 旋转：让文字垂直于半径
+    let deg = (mid * 180 / Math.PI);
+    let rot = deg - 90;
+    // 左半圆（mid ∈ π..2π，也就是 12 点逆时针半圈）→ 翻转，让文字始终"正着读"
+    if (mid > Math.PI){
+      rot += 180;
+    }
+    return `translate(${x},${y}) rotate(${rot})`;
+  })
+  .attr("text-anchor", d => {
+    const mid = (d.a0 + d.a1) / 2;
+    return mid > Math.PI ? "end" : "start";
+  })
+  .attr("dy", "0.32em")
+  .text(d => d.name);
+
+/* =====================================================================
+   绘制提供者弧 + 标签
+   ===================================================================== */
+const provLayer = svg.append("g").attr("class","providers");
+
+const provGroups = provLayer.selectAll("g.provider")
+  .data(PROVIDERS)
+  .join("g")
+  .attr("class", (d,i) => `provider provider-${i}`);
+
+provGroups.append("path")
+  .attr("class","arc-provider")
+  .attr("d", d => {
+    const a = d3.arc()
+      .innerRadius(arcProviderR0)
+      .outerRadius(arcProviderR1)
+      .startAngle(d.a0)
+      .endAngle(d.a1);
+    return a(d);
+  })
+  .attr("fill", d => d.hex)
+  .attr("opacity", 0.9);
+
+// Provider 热区：覆盖弧外两行文字 + 一点 padding
+provGroups.append("path")
+  .attr("class", "hit-area")
+  .attr("d", d => {
+    const halfPad = providerPad / 2;
+    const a = d3.arc()
+      .innerRadius(arcProviderR0 - 10)
+      .outerRadius(arcProviderR1 + 90)
+      .startAngle(d.a0 - halfPad)
+      .endAngle(d.a1 + halfPad);
+    return a(d);
+  });
+
+// 提供者标签：放在弧外，水平显示
+// Provider 标签 + 百分比：合并为同一个 text，分两行（用 tspan）
+provGroups.append("text")
+  .attr("class","provider-label")
+  .attr("transform", d => {
+    const mid = (d.a0 + d.a1) / 2;
+    const r = arcProviderR1 + 22;
+    const [x, y] = polar(r, mid);
+    let deg = mid * 180 / Math.PI;
+    let rot = deg - 90;
+    if (mid > Math.PI){
+      rot += 180;
+    }
+    return `translate(${x},${y}) rotate(${rot})`;
+  })
+  .attr("text-anchor", d => {
+    const mid = (d.a0 + d.a1) / 2;
+    return mid > Math.PI ? "end" : "start";
+  })
+  .each(function(d){
+    const sel = d3.select(this);
+    // 第一行：提供者名
+    sel.append("tspan")
+      .attr("class","provider-label-line")
+      .attr("x", 0)
+      .attr("dy", "0")
+      .text(d.label);
+    // 第二行：百分比（用 tspan 的 class 单独样式化，并配合 hover 联动）
+    const pct = (providerTotals[PROVIDERS.indexOf(d)] / providerSum * 100).toFixed(1);
+    sel.append("tspan")
+      .attr("class","provider-count-line")
+      .attr("x", 0)
+      .attr("dy", "1.35em")
+      .text(`${pct}% OF FLOW`);
+  });
+
+/* =====================================================================
+   交互：hover 国家或提供者，高亮相关弦
+   ===================================================================== */
+const svgNode = svg.node();
+
+function clearHover(){
+  svg.classed("is-hovering", false);
+  svg.selectAll(".is-active").classed("is-active", false);
+}
+
+function highlightCountry(i){
+  svg.classed("is-hovering", true);
+  svg.selectAll(".is-active").classed("is-active", false);
+  svg.selectAll(`.r-c${i}`).classed("is-active", true);
+  svg.select(`.country-${i} .arc-country`).classed("is-active", true);
+  svg.select(`.country-${i} .country-label`).classed("is-active", true);
+  // 高亮所有相关 provider 的弧 + 文字
+  COUNTRIES[i].shares.forEach((v,j) => {
+    if (v > 0.05) {
+      svg.select(`.provider-${j} .arc-provider`).classed("is-active", true);
+      svg.select(`.provider-${j} .provider-label`).classed("is-active", true);
+    }
+  });
+}
+
+function highlightProvider(j){
+  svg.classed("is-hovering", true);
+  svg.selectAll(".is-active").classed("is-active", false);
+  svg.selectAll(`.r-p${j}`).classed("is-active", true);
+  svg.select(`.provider-${j} .arc-provider`).classed("is-active", true);
+  svg.select(`.provider-${j} .provider-label`).classed("is-active", true);
+  COUNTRIES.forEach((c,i) => {
+    if (c.shares[j] > 0.05) {
+      svg.select(`.country-${i} .arc-country`).classed("is-active", true);
+      svg.select(`.country-${i} .country-label`).classed("is-active", true);
+    }
+  });
+}
+
+countryArcs
+  .on("mouseenter", (e, d) => highlightCountry(COUNTRIES.indexOf(d)))
+  .on("mouseleave", clearHover);
+
+provGroups
+  .on("mouseenter", (e, d) => highlightProvider(PROVIDERS.indexOf(d)))
+  .on("mouseleave", clearHover);
+
+</script>
+</body>
+</html>
