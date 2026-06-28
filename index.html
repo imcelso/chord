@@ -48,6 +48,36 @@
     position: relative;
   }
 
+  /* ---------- 顶部 Nav ---------- */
+  .lp-nav{
+    margin-bottom: 28px;
+  }
+  .back-portfolio{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    text-decoration: none;
+    padding: 8px 16px 8px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;  /* 胶囊形 */
+    background: transparent;
+    transition: color 200ms ease, border-color 220ms ease, background 220ms ease;
+  }
+  .back-portfolio svg{
+    transition: transform 220ms cubic-bezier(.2,.7,.2,1);
+  }
+  .back-portfolio:hover{
+    color: var(--ink);
+    border-color: var(--ink-dim);
+    background: rgba(255,255,255,0.025);
+  }
+  .back-portfolio:hover svg{
+    transform: translateX(-3px);
+  }
+
   /* ---------- 顶部标题区 ---------- */
   .eyebrow{
     font-size: 11px;
@@ -261,6 +291,15 @@
 </head>
 <body>
 <div class="stage">
+
+  <header class="lp-nav">
+    <a href="https://celso.cc" class="back-portfolio" aria-label="Back to portfolio">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back to portfolio
+    </a>
+  </header>
 
   <div class="eyebrow">OECD · Chapter 10 · Ageing &amp; Long-Term Care</div>
   <h1>Where each nation's care budget <em>flows</em>.</h1>
